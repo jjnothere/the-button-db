@@ -8,8 +8,8 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Serve static files from the correct directory (root or public)
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the "public" directory or root if that is where they are built
+app.use(express.static(path.join(__dirname, '../public'))); // Adjust if the static files are elsewhere
 
 // MongoDB connection URI from environment variable
 const uri = process.env.MONGODB_URI;
@@ -57,7 +57,7 @@ app.post('/api/increment', async (req, res) => {
 
 // Fallback to serve index.html for any unknown routes (for Vue Router)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, '../public', 'index.html')); // Adjust if index.html is in a different location
 });
 
 app.listen(port, () => {
