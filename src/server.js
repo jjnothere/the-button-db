@@ -2,18 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { MongoClient } = require('mongodb');
+const { Server } = require('ws'); // Import WebSocket server
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Serve static files from the "public" directory or root if that is where they are built
-app.use(express.static(path.join(__dirname, '../public'))); // Adjust if the static files are elsewhere
+app.use(express.static(path.join(__dirname, '../public')));
 
-// MongoDB connection URI from environment variable
 const uri = process.env.MONGODB_URI;
-
+console.log('MongoDB URI:', uri);
 let db, collection;
 let count = 0;
 
@@ -33,6 +33,21 @@ MongoClient.connect(uri)
   })
   .catch(error => console.error(error));
 
+// WebSocket setup
+const server = app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+const wss = new Server({ server });
+
+wss.on('connection', ws => {
+  ws.send(JSON.stringify({ count }));
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+});
+
 // API routes
 app.get('/api/count', (req, res) => {
   res.json({ count });
@@ -48,6 +63,14 @@ app.post('/api/increment', async (req, res) => {
       { $set: { count: count } },
       { upsert: true }
     );
+
+    // Broadcast the new count to all connected WebSocket clients
+    wss.clients.forEach(client => {
+      if (client.readyState === client.OPEN) {
+        client.send(JSON.stringify({ count }));
+      }
+    });
+
     res.json({ count });
   } catch (error) {
     console.error(error);
@@ -57,9 +80,5 @@ app.post('/api/increment', async (req, res) => {
 
 // Fallback to serve index.html for any unknown routes (for Vue Router)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public', 'index.html')); // Adjust if index.html is in a different location
-});
-
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
