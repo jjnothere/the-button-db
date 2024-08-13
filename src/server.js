@@ -8,8 +8,8 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Serve static files from the dist directory (created by `npm run build`)
-app.use(express.static(path.join(__dirname, 'dist')));
+// Serve static files from the correct directory (root or public)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB connection URI from environment variable
 const uri = process.env.MONGODB_URI;
@@ -17,7 +17,6 @@ const uri = process.env.MONGODB_URI;
 let db, collection;
 let count = 0;
 
-// Connect to MongoDB and load the initial counter value
 MongoClient.connect(uri)
   .then(async client => {
     console.log('Connected to Database');
@@ -34,18 +33,17 @@ MongoClient.connect(uri)
   })
   .catch(error => console.error(error));
 
-// Endpoint to get the current count
+// API routes
 app.get('/api/count', (req, res) => {
   res.json({ count });
 });
 
-// Endpoint to increment the count
 app.post('/api/increment', async (req, res) => {
   count += 1;
   console.log("🐒 ~ count:", count);
-  
+
   try {
-    const result = await collection.updateOne(
+    await collection.updateOne(
       { _id: 'counter' },
       { $set: { count: count } },
       { upsert: true }
@@ -57,12 +55,11 @@ app.post('/api/increment', async (req, res) => {
   }
 });
 
-// Fallback to serve the index.html for any unknown routes (for Vue Router)
+// Fallback to serve index.html for any unknown routes (for Vue Router)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
