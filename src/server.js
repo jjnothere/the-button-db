@@ -54,7 +54,7 @@ app.get('/api/count', (req, res) => {
 });
 
 app.post('/api/increment', async (req, res) => {
-  count += 1;
+  count = 0;
   console.log("🐒 ~ count:", count);
 
   try {
