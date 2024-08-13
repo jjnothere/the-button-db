@@ -49,12 +49,12 @@ wss.on('connection', ws => {
 });
 
 // API routes
-app.get('/api/count', (req, res) => {
+app.get('/count', (req, res) => {
   res.json({ count });
 });
 
-app.post('/api/increment', async (req, res) => {
-  count = 0;
+app.post('/increment', async (req, res) => {
+  count += 1;
   console.log("🐒 ~ count:", count);
 
   try {
