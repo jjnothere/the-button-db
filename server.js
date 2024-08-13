@@ -17,6 +17,7 @@ const uri = process.env.MONGODB_URI;
 let db, collection;
 let count = 0;
 
+// Connect to MongoDB and load the initial counter value
 MongoClient.connect(uri)
   .then(async client => {
     console.log('Connected to Database');
@@ -33,10 +34,12 @@ MongoClient.connect(uri)
   })
   .catch(error => console.error(error));
 
+// Endpoint to get the current count
 app.get('/api/count', (req, res) => {
   res.json({ count });
 });
 
+// Endpoint to increment the count
 app.post('/api/increment', async (req, res) => {
   count += 1;
   console.log("🐒 ~ count:", count);
@@ -56,9 +59,10 @@ app.post('/api/increment', async (req, res) => {
 
 // Fallback to serve the index.html for any unknown routes (for Vue Router)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Start the server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
