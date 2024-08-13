@@ -54,6 +54,15 @@ app.get('/api/count', (req, res) => {
 });
 
 app.post('/api/increment', async (req, res) => {
+  const referer = req.get('Referer');
+  const origin = req.get('Origin');
+
+  // Validate that the request is coming from your domain
+  if (referer !== 'https://www.theclickcounter.com/' && origin !== 'https://www.theclickcounter.com') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  // Proceed with incrementing the counter if validation passes
   count += 1;
   console.log("🐒 ~ count:", count);
 
