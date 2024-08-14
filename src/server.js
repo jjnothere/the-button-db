@@ -36,6 +36,8 @@ function rateLimiter(req, res, next) {
   } else {
     const { count, lastRequest, clickTimes } = rateLimiters.get(ip);
     
+    console.log("🐒 ~ RATE_LIMIT:", RATE_LIMIT)
+    console.log("🐒 ~ count:", count)
     // Check if more than 1 second has passed
     if (currentTime - lastRequest >= 1000) {
       // Reset count and clickTimes for a new second
@@ -43,8 +45,6 @@ function rateLimiter(req, res, next) {
       next();
     } else {
       if (count >= RATE_LIMIT) {
-        console.log("🐒 ~ RATE_LIMIT:", RATE_LIMIT)
-        console.log("🐒 ~ count:", count)
         return res.status(429).json({ error: 'Wow you are either super human or a robot....please slow down' });
       } else {
         // Update click times and check for consistency
