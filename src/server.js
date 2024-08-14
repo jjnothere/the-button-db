@@ -24,7 +24,7 @@ const CONSISTENT_INTERVAL_CHECK = 100; // Number of clicks to check for consiste
 
 // Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
-const RATE_LIMIT = 100; // Max requests per second
+const RATE_LIMIT = 70; // Max requests per second
 
 function rateLimiter(req, res, next) {
   const ip = req.ip;
