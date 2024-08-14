@@ -24,10 +24,15 @@ const CONSISTENT_INTERVAL_CHECK = 100; // Number of clicks to check for consiste
 
 // Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
-const RATE_LIMIT = 70; // Max requests per second
+const RATE_LIMIT = 60; // Max requests per second
+
+function getIp(req) {
+  // If behind a proxy or load balancer, use X-Forwarded-For header
+  return req.headers['x-forwarded-for'] || req.ip;
+}
 
 function rateLimiter(req, res, next) {
-  const ip = req.ip;
+  const ip = getIp(req);
   const currentTime = Date.now();
 
   if (!rateLimiters.has(ip)) {
@@ -67,7 +72,7 @@ function isConsistent(clickTimes) {
 }
 
 function trackIpRequests(req, res, next) {
-  const ip = req.ip;
+  const ip = getIp(req);
   const currentTime = Date.now();
 
   if (ipRequestCounts.has(ip)) {
@@ -75,7 +80,7 @@ function trackIpRequests(req, res, next) {
     
     // If IP is currently blocked
     if (ipData.blockedUntil && ipData.blockedUntil > currentTime) {
-      return res.status(429).json({ error: 'WOW that was way too many cicks for a normal human. You are in a 10min time out. :(' });
+      return res.status(429).json({ error: 'WOW that was way too many clicks for a normal human. You are in a 10min time out. :(' });
     }
 
     // Calculate the time passed since last request
@@ -144,7 +149,7 @@ app.post('/api/increment', trackIpRequests, rateLimiter, async (req, res) => {
   const origin = req.get('Origin');
 
   // Validate that the request is coming from your domain
-  if (referer !== 'https://www.theclickcounter.com/' && origin !== 'https://www.theclickcounter.com') {
+  if (referer !== 'https://www.theclickcounter.com/' && origin !== 'https://www.theclickcounter.com' && origin !== 'http://localhost:3000') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
