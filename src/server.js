@@ -17,6 +17,34 @@ console.log('MongoDB URI:', uri);
 let db, collection;
 let count = 0;
 
+// Simple in-memory rate limiter
+const rateLimiters = new Map();
+
+function rateLimiter(req, res, next) {
+  const ip = req.ip;
+  const currentTime = Date.now();
+
+  if (!rateLimiters.has(ip)) {
+    rateLimiters.set(ip, { count: 1, lastRequest: currentTime });
+    next();
+  } else {
+    const { count, lastRequest } = rateLimiters.get(ip);
+
+    if (currentTime - lastRequest < 1000) { // Less than 1 second has passed
+      if (count >= 10) {
+        return res.status(429).json({ error: 'Too many requests - please slow down' });
+      } else {
+        rateLimiters.set(ip, { count: count + 1, lastRequest: currentTime });
+        next();
+      }
+    } else {
+      // More than 1 second has passed
+      rateLimiters.set(ip, { count: 1, lastRequest: currentTime });
+      next();
+    }
+  }
+}
+
 MongoClient.connect(uri)
   .then(async client => {
     console.log('Connected to Database');
@@ -53,7 +81,7 @@ app.get('/api/count', (req, res) => {
   res.json({ count });
 });
 
-app.post('/api/increment', async (req, res) => {
+app.post('/api/increment', rateLimiter, async (req, res) => {
   const referer = req.get('Referer');
   const origin = req.get('Origin');
 
