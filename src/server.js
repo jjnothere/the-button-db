@@ -38,7 +38,7 @@ function rateLimiter(req, res, next) {
 
     if (currentTime - lastRequest < 1000) { // Less than 1 second has passed
       if (count >= RATE_LIMIT) {
-        return res.status(429).json({ error: 'Too many requests - please slow down' });
+        return res.status(429).json({ error: 'Wow you are either super human or a robot....please slow down' });
       } else {
         // Update click times and check for consistency
         clickTimes.push(currentTime);
@@ -74,7 +74,7 @@ function trackIpRequests(req, res, next) {
     
     // If IP is currently blocked
     if (ipData.blockedUntil && ipData.blockedUntil > currentTime) {
-      return res.status(429).json({ error: 'Too many requests. Try again later. You are in a 10min time out. :(' });
+      return res.status(429).json({ error: 'WOW that was way too many cicks for a normal human. You are in a 10min time out. :(' });
     }
 
     // Calculate the time passed since last request
