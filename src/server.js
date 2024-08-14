@@ -24,7 +24,7 @@ const CONSISTENT_INTERVAL_CHECK = 50; // Number of clicks to check for consisten
 
 // Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
-const RATE_LIMIT = 60; // Max requests per second
+const RATE_LIMIT = 20; // Max requests per second
 
 function rateLimiter(req, res, next) {
   const ip = req.ip;
@@ -35,10 +35,13 @@ function rateLimiter(req, res, next) {
     next();
   } else {
     const { count, lastRequest, clickTimes } = rateLimiters.get(ip);
-    console.log("🐒 ~ count:", count)
-    console.log("🐒 ~ RATE_LIMIT:", RATE_LIMIT)
-
-    if (currentTime - lastRequest < 1000) { // Less than 1 second has passed
+    
+    // Check if more than 1 second has passed
+    if (currentTime - lastRequest >= 1000) {
+      // Reset count and clickTimes for a new second
+      rateLimiters.set(ip, { count: 1, lastRequest: currentTime, clickTimes: [currentTime] });
+      next();
+    } else {
       if (count >= RATE_LIMIT) {
         return res.status(429).json({ error: 'Wow you are either super human or a robot....please slow down' });
       } else {
@@ -53,10 +56,6 @@ function rateLimiter(req, res, next) {
         rateLimiters.set(ip, { count: count + 1, lastRequest: currentTime, clickTimes });
         next();
       }
-    } else {
-      // More than 1 second has passed
-      rateLimiters.set(ip, { count: 1, lastRequest: currentTime, clickTimes: [currentTime] });
-      next();
     }
   }
 }
