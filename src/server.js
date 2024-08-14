@@ -20,34 +20,49 @@ let count = 0;
 const ipRequestCounts = new Map();
 const REQUEST_LIMIT = 700; // Max requests per minute
 const BLOCK_TIME = 10 * 60 * 1000; // Block for 10 minutes
+const CONSISTENT_INTERVAL_CHECK = 50; // Number of clicks to check for consistent intervals
 
 // Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
-const RATE_LIMIT = 40; // Max requests per second
+const RATE_LIMIT = 20; // Max requests per second
 
 function rateLimiter(req, res, next) {
   const ip = req.ip;
   const currentTime = Date.now();
 
   if (!rateLimiters.has(ip)) {
-    rateLimiters.set(ip, { count: 1, lastRequest: currentTime });
+    rateLimiters.set(ip, { count: 1, lastRequest: currentTime, clickTimes: [currentTime] });
     next();
   } else {
-    const { count, lastRequest } = rateLimiters.get(ip);
+    const { count, lastRequest, clickTimes } = rateLimiters.get(ip);
 
     if (currentTime - lastRequest < 1000) { // Less than 1 second has passed
       if (count >= RATE_LIMIT) {
         return res.status(429).json({ error: 'Too many requests - please slow down' });
       } else {
-        rateLimiters.set(ip, { count: count + 1, lastRequest: currentTime });
+        // Update click times and check for consistency
+        clickTimes.push(currentTime);
+        if (clickTimes.length > CONSISTENT_INTERVAL_CHECK) {
+          clickTimes.shift(); // Keep only the last N timestamps
+          if (isConsistent(clickTimes)) {
+            return res.status(429).json({ error: 'This site is for humans only...sorry robots.' });
+          }
+        }
+        rateLimiters.set(ip, { count: count + 1, lastRequest: currentTime, clickTimes });
         next();
       }
     } else {
       // More than 1 second has passed
-      rateLimiters.set(ip, { count: 1, lastRequest: currentTime });
+      rateLimiters.set(ip, { count: 1, lastRequest: currentTime, clickTimes: [currentTime] });
       next();
     }
   }
+}
+
+function isConsistent(clickTimes) {
+  const intervals = clickTimes.slice(1).map((time, index) => time - clickTimes[index]);
+  const firstInterval = intervals[0];
+  return intervals.every(interval => Math.abs(interval - firstInterval) < 10); // Allowing a small variance
 }
 
 function trackIpRequests(req, res, next) {
@@ -59,7 +74,7 @@ function trackIpRequests(req, res, next) {
     
     // If IP is currently blocked
     if (ipData.blockedUntil && ipData.blockedUntil > currentTime) {
-      return res.status(429).json({ error: 'Too many requests. Try again later.' });
+      return res.status(429).json({ error: 'Too many requests. Try again later. You are in a 10min time out. :(' });
     }
 
     // Calculate the time passed since last request
@@ -78,7 +93,7 @@ function trackIpRequests(req, res, next) {
           ...ipData,
           blockedUntil: currentTime + BLOCK_TIME
         });
-        return res.status(429).json({ error: 'Too many requests. Try again later. You are in a time out. :(' });
+        return res.status(429).json({ error: 'Too many requests. Try again later. You are in a 10min time out. :(' });
       } else {
         ipRequestCounts.set(ip, ipData);
       }
