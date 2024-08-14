@@ -64,7 +64,6 @@ app.post('/api/increment', async (req, res) => {
 
   // Proceed with incrementing the counter if validation passes
   count += 1;
-  console.log("🐒 ~ count:", count);
 
   try {
     await collection.updateOne(
