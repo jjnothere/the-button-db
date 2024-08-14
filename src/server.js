@@ -18,7 +18,7 @@ let count = 0;
 
 // Simple in-memory store for tracking requests per IP
 const ipRequestCounts = new Map();
-const REQUEST_LIMIT = 700; // Max requests per minute
+const REQUEST_LIMIT = 500; // Max requests per minute
 const BLOCK_TIME = 10 * 60 * 1000; // Block for 10 minutes
 const CONSISTENT_INTERVAL_CHECK = 50; // Number of clicks to check for consistent intervals
 
