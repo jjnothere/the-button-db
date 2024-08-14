@@ -78,7 +78,7 @@ function trackIpRequests(req, res, next) {
           ...ipData,
           blockedUntil: currentTime + BLOCK_TIME
         });
-        return res.status(429).json({ error: 'Too many requests. Try again later. You are in a 10min time out. :(' });
+        return res.status(429).json({ error: 'Too many requests. Try again later. You are in a time out. :(' });
       } else {
         ipRequestCounts.set(ip, ipData);
       }
