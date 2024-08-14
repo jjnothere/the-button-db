@@ -9,7 +9,6 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-
 app.use(express.static(path.join(__dirname, '../public')));
 
 const uri = process.env.MONGODB_URI;
@@ -17,8 +16,14 @@ console.log('MongoDB URI:', uri);
 let db, collection;
 let count = 0;
 
-// Simple in-memory rate limiter
+// Simple in-memory store for tracking requests per IP
+const ipRequestCounts = new Map();
+const REQUEST_LIMIT = 700; // Max requests per minute
+const BLOCK_TIME = 10 * 60 * 1000; // Block for 10 minutes
+
+// Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
+const RATE_LIMIT = 20; // Max requests per second
 
 function rateLimiter(req, res, next) {
   const ip = req.ip;
@@ -31,7 +36,7 @@ function rateLimiter(req, res, next) {
     const { count, lastRequest } = rateLimiters.get(ip);
 
     if (currentTime - lastRequest < 1000) { // Less than 1 second has passed
-      if (count >= 40) {
+      if (count >= RATE_LIMIT) {
         return res.status(429).json({ error: 'Too many requests - please slow down' });
       } else {
         rateLimiters.set(ip, { count: count + 1, lastRequest: currentTime });
@@ -43,6 +48,47 @@ function rateLimiter(req, res, next) {
       next();
     }
   }
+}
+
+function trackIpRequests(req, res, next) {
+  const ip = req.ip;
+  const currentTime = Date.now();
+
+  if (ipRequestCounts.has(ip)) {
+    const ipData = ipRequestCounts.get(ip);
+    
+    // If IP is currently blocked
+    if (ipData.blockedUntil && ipData.blockedUntil > currentTime) {
+      return res.status(429).json({ error: 'Too many requests. Try again later.' });
+    }
+
+    // Calculate the time passed since last request
+    const timePassed = currentTime - ipData.lastRequestTime;
+
+    // Reset count if more than a minute has passed
+    if (timePassed > 60 * 1000) {
+      ipRequestCounts.set(ip, { count: 1, lastRequestTime: currentTime });
+    } else {
+      ipData.count += 1;
+      ipData.lastRequestTime = currentTime;
+
+      if (ipData.count > REQUEST_LIMIT) {
+        // Block IP for a period of time
+        ipRequestCounts.set(ip, {
+          ...ipData,
+          blockedUntil: currentTime + BLOCK_TIME
+        });
+        return res.status(429).json({ error: 'Too many requests. Try again later. You are in a 10min time out. :(' });
+      } else {
+        ipRequestCounts.set(ip, ipData);
+      }
+    }
+  } else {
+    // First request from this IP
+    ipRequestCounts.set(ip, { count: 1, lastRequestTime: currentTime });
+  }
+
+  next();
 }
 
 MongoClient.connect(uri)
@@ -76,12 +122,8 @@ wss.on('connection', ws => {
   });
 });
 
-// API routes
-app.get('/api/count', (req, res) => {
-  res.json({ count });
-});
-
-app.post('/api/increment', rateLimiter, async (req, res) => {
+// Apply both IP tracking and rate limiting to the increment route
+app.post('/api/increment', trackIpRequests, rateLimiter, async (req, res) => {
   const referer = req.get('Referer');
   const origin = req.get('Origin');
 
