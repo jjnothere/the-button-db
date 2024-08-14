@@ -31,7 +31,7 @@ function rateLimiter(req, res, next) {
     const { count, lastRequest } = rateLimiters.get(ip);
 
     if (currentTime - lastRequest < 1000) { // Less than 1 second has passed
-      if (count >= 5) {
+      if (count >= 10) {
         return res.status(429).json({ error: 'Too many requests - please slow down' });
       } else {
         rateLimiters.set(ip, { count: count + 1, lastRequest: currentTime });
