@@ -91,7 +91,7 @@ app.post('/api/increment', rateLimiter, async (req, res) => {
   }
 
   // Proceed with incrementing the counter if validation passes
-  count += 1;
+  count = 26969;
 
   try {
     await collection.updateOne(
