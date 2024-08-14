@@ -20,7 +20,7 @@ let count = 0;
 const ipRequestCounts = new Map();
 const REQUEST_LIMIT = 500; // Max requests per minute
 const BLOCK_TIME = 10 * 60 * 1000; // Block for 10 minutes
-const CONSISTENT_INTERVAL_CHECK = 50; // Number of clicks to check for consistent intervals
+const CONSISTENT_INTERVAL_CHECK = 100; // Number of clicks to check for consistent intervals
 
 // Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
