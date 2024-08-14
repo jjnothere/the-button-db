@@ -43,6 +43,8 @@ function rateLimiter(req, res, next) {
       next();
     } else {
       if (count >= RATE_LIMIT) {
+        console.log("🐒 ~ RATE_LIMIT:", RATE_LIMIT)
+        console.log("🐒 ~ count:", count)
         return res.status(429).json({ error: 'Wow you are either super human or a robot....please slow down' });
       } else {
         // Update click times and check for consistency
