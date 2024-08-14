@@ -24,7 +24,7 @@ const CONSISTENT_INTERVAL_CHECK = 50; // Number of clicks to check for consisten
 
 // Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
-const RATE_LIMIT = 60; // Max requests per second
+const RATE_LIMIT = 40; // Max requests per second
 
 function rateLimiter(req, res, next) {
   const ip = req.ip;
@@ -62,7 +62,7 @@ function rateLimiter(req, res, next) {
 function isConsistent(clickTimes) {
   const intervals = clickTimes.slice(1).map((time, index) => time - clickTimes[index]);
   const firstInterval = intervals[0];
-  return intervals.every(interval => Math.abs(interval - firstInterval) < 10); // Allowing a small variance
+  return intervals.every(interval => Math.abs(interval - firstInterval) < 20); // Increased tolerance to 20ms
 }
 
 function trackIpRequests(req, res, next) {
