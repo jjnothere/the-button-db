@@ -35,6 +35,8 @@ function rateLimiter(req, res, next) {
     next();
   } else {
     const { count, lastRequest, clickTimes } = rateLimiters.get(ip);
+    console.log("🐒 ~ count:", count)
+    console.log("🐒 ~ RATE_LIMIT:", RATE_LIMIT)
 
     if (currentTime - lastRequest < 1000) { // Less than 1 second has passed
       if (count >= RATE_LIMIT) {
