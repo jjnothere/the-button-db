@@ -24,7 +24,7 @@ const CONSISTENT_INTERVAL_CHECK = 100; // Number of clicks to check for consiste
 
 // Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
-const RATE_LIMIT = 60; // Max requests per second
+const RATE_LIMIT = 80; // Max requests per second
 
 function getIp(req) {
   // If behind a proxy or load balancer, use X-Forwarded-For header
