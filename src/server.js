@@ -51,12 +51,12 @@ function trackIpRequests(req, res, next) {
     }
 
     // If 200 requests have been made with the same interval, block the IP
-    if (ipData.sameIntervalCount >= 75) {
+    if (ipData.sameIntervalCount >= 100) {
       ipRequestCounts.set(ip, {
         ...ipData,
         blockedUntil: currentTime + BLOCK_TIME
       });
-      console.log(`IP ${ip} made 200 requests at the same interval and is blocked until ${new Date(currentTime + BLOCK_TIME)}`);
+      console.log(`IP ${ip} made 100 requests at the same interval and is blocked until ${new Date(currentTime + BLOCK_TIME)}`);
       return res.status(429).json({ error: 'Too many suspicious requests. You have been put in a 10-minute timeout.' });
     }
 
