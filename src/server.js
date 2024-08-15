@@ -51,7 +51,7 @@ function trackIpRequests(req, res, next) {
     }
 
     // If 200 requests have been made with the same interval, block the IP
-    if (ipData.sameIntervalCount >= 200) {
+    if (ipData.sameIntervalCount >= 75) {
       ipRequestCounts.set(ip, {
         ...ipData,
         blockedUntil: currentTime + BLOCK_TIME
