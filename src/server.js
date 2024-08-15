@@ -42,9 +42,28 @@ function trackIpRequests(req, res, next) {
     // Calculate the time passed since last request
     const timePassed = currentTime - ipData.lastRequestTime;
 
+    // Check if the interval between requests is consistent
+    if (ipData.interval === timePassed) {
+      ipData.sameIntervalCount += 1;
+    } else {
+      ipData.sameIntervalCount = 1;
+      ipData.interval = timePassed;
+    }
+
+    // If 200 requests have been made with the same interval, block the IP
+    if (ipData.sameIntervalCount >= 200) {
+      ipRequestCounts.set(ip, {
+        ...ipData,
+        blockedUntil: currentTime + BLOCK_TIME
+      });
+      console.log(`IP ${ip} made 200 requests at the same interval and is blocked until ${new Date(currentTime + BLOCK_TIME)}`);
+      return res.status(429).json({ error: 'Too many suspicious requests. You have been put in a 10-minute timeout.' });
+    }
+
     // Reset count at the start of a new minute
     if (new Date(currentTime).getMinutes() !== new Date(ipData.lastRequestTime).getMinutes()) {
       ipData.count = 0; // Reset count
+      ipData.sameIntervalCount = 0; // Reset the same interval count
       console.log(`IP ${ip} request count reset.`);
     }
 
@@ -65,7 +84,7 @@ function trackIpRequests(req, res, next) {
     }
   } else {
     // First request from this IP
-    ipRequestCounts.set(ip, { count: 1, lastRequestTime: currentTime });
+    ipRequestCounts.set(ip, { count: 1, lastRequestTime: currentTime, sameIntervalCount: 0, interval: null });
     console.log(`First request from IP ${ip}.`);
   }
 
