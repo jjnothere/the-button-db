@@ -1,8 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const crypto = require('crypto'); // For generating tokens
 const { MongoClient } = require('mongodb');
-const { Server } = require('ws'); // Import WebSocket server
+const { Server } = require('ws');
 require('dotenv').config();
 
 const app = express();
@@ -16,6 +17,30 @@ console.log('MongoDB URI:', uri);
 let db, collection;
 let count = 0;
 
+// Token management
+let currentToken = generateToken();
+let tokenExpiration = Date.now() + 5 * 60 * 1000; // Token valid for 5 minutes
+
+function generateToken() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+function rotateToken() {
+  currentToken = generateToken();
+  tokenExpiration = Date.now() + 5 * 60 * 1000;
+}
+
+setInterval(rotateToken, 5 * 60 * 1000); // Rotate the token every 5 minutes
+
+// Middleware to check the token
+function validateToken(req, res, next) {
+  const token = req.headers['x-access-token'];
+  if (!token || token !== currentToken) {
+    return res.status(403).json({ error: 'Invalid or missing token' });
+  }
+  next();
+}
+
 // Simple in-memory store for tracking requests per IP
 const ipRequestCounts = new Map();
 const REQUEST_LIMIT = 500; // Max requests per minute
@@ -24,7 +49,7 @@ const CONSISTENT_INTERVAL_CHECK = 100; // Number of clicks to check for consiste
 
 // Simple in-memory rate limiter for burst control
 const rateLimiters = new Map();
-const RATE_LIMIT = 80; // Max requests per second
+const RATE_LIMIT = 60; // Max requests per second
 
 function getIp(req) {
   // If behind a proxy or load balancer, use X-Forwarded-For header
@@ -143,8 +168,13 @@ wss.on('connection', ws => {
   });
 });
 
-// Apply both IP tracking and rate limiting to the increment route
-app.post('/api/increment', trackIpRequests, rateLimiter, async (req, res) => {
+// API to get the current token (for initial load)
+app.get('/api/token', (req, res) => {
+  res.json({ token: currentToken });
+});
+
+// Apply both IP tracking, rate limiting, and token validation to the increment route
+app.post('/api/increment', validateToken, trackIpRequests, rateLimiter, async (req, res) => {
   const referer = req.get('Referer');
   const origin = req.get('Origin');
 
