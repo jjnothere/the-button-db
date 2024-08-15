@@ -58,7 +58,7 @@ function trackIpRequests(req, res, next) {
 
   if (ipRequestCounts.has(ip)) {
     const ipData = ipRequestCounts.get(ip);
-
+    
     // If IP is currently blocked
     if (ipData.blockedUntil && ipData.blockedUntil > currentTime) {
       console.log(`IP ${ip} is currently blocked until ${new Date(ipData.blockedUntil)}`);
@@ -68,26 +68,26 @@ function trackIpRequests(req, res, next) {
     // Calculate the time passed since last request
     const timePassed = currentTime - ipData.lastRequestTime;
 
-    if (timePassed > 60 * 1000) {
-      // Reset count if more than a minute has passed
-      ipRequestCounts.set(ip, { count: 1, lastRequestTime: currentTime });
+    // Reset count at the start of a new minute
+    if (new Date(currentTime).getMinutes() !== new Date(ipData.lastRequestTime).getMinutes()) {
+      ipData.count = 0; // Reset count
       console.log(`IP ${ip} request count reset.`);
-    } else {
-      ipData.count += 1;
-      ipData.lastRequestTime = currentTime;
+    }
 
-      if (ipData.count > REQUEST_LIMIT) {
-        // Block IP for a period of time
-        ipRequestCounts.set(ip, {
-          ...ipData,
-          blockedUntil: currentTime + BLOCK_TIME
-        });
-        console.log(`IP ${ip} exceeded the request limit and is blocked until ${new Date(currentTime + BLOCK_TIME)}`);
-        return res.status(429).json({ error: 'Too much ham. You are in a 10-minute timeout.' });
-      } else {
-        ipRequestCounts.set(ip, ipData);
-        console.log(`IP ${ip} request count updated: ${ipData.count}`);
-      }
+    ipData.count += 1;
+    ipData.lastRequestTime = currentTime;
+
+    if (ipData.count > REQUEST_LIMIT) {
+      // Block IP for a period of time
+      ipRequestCounts.set(ip, {
+        ...ipData,
+        blockedUntil: currentTime + BLOCK_TIME
+      });
+      console.log(`IP ${ip} exceeded the request limit and is blocked until ${new Date(currentTime + BLOCK_TIME)}`);
+      return res.status(429).json({ error: 'Too much ham. You are in a 10-minute timeout.' });
+    } else {
+      ipRequestCounts.set(ip, ipData);
+      console.log(`IP ${ip} request count updated: ${ipData.count}`);
     }
   } else {
     // First request from this IP
