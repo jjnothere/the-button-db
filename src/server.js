@@ -43,57 +43,12 @@ function validateToken(req, res, next) {
 
 // Simple in-memory store for tracking requests per IP
 const ipRequestCounts = new Map();
-const REQUEST_LIMIT = 500; // Max requests per minute
+const REQUEST_LIMIT = 1000; // Max requests per minute
 const BLOCK_TIME = 10 * 60 * 1000; // Block for 10 minutes
-const CONSISTENT_INTERVAL_CHECK = 100; // Number of clicks to check for consistent intervals
-
-// Simple in-memory rate limiter for burst control
-const rateLimiters = new Map();
-const RATE_LIMIT = 60; // Max requests per second
 
 function getIp(req) {
   // If behind a proxy or load balancer, use X-Forwarded-For header
   return req.headers['x-forwarded-for'] || req.ip;
-}
-
-function rateLimiter(req, res, next) {
-  const ip = getIp(req);
-  const currentTime = Date.now();
-
-  if (!rateLimiters.has(ip)) {
-    rateLimiters.set(ip, { count: 1, lastRequest: currentTime, clickTimes: [currentTime] });
-    next();
-  } else {
-    const { count, lastRequest, clickTimes } = rateLimiters.get(ip);
-    
-    // Check if more than 1 second has passed
-    if (currentTime - lastRequest >= 1000) {
-      // Reset count and clickTimes for a new second
-      rateLimiters.set(ip, { count: 1, lastRequest: currentTime, clickTimes: [currentTime] });
-      next();
-    } else {
-      if (count >= RATE_LIMIT) {
-        return res.status(429).json({ error: 'Wow you are either super human or a robot....please slow down' });
-      } else {
-        // Update click times and check for consistency
-        clickTimes.push(currentTime);
-        if (clickTimes.length > CONSISTENT_INTERVAL_CHECK) {
-          clickTimes.shift(); // Keep only the last N timestamps
-          if (isConsistent(clickTimes)) {
-            return res.status(429).json({ error: 'This site is for humans only...sorry robots.' });
-          }
-        }
-        rateLimiters.set(ip, { count: count + 1, lastRequest: currentTime, clickTimes });
-        next();
-      }
-    }
-  }
-}
-
-function isConsistent(clickTimes) {
-  const intervals = clickTimes.slice(1).map((time, index) => time - clickTimes[index]);
-  const firstInterval = intervals[0];
-  return intervals.every(interval => Math.abs(interval - firstInterval) < 20); // Increased tolerance to 20ms
 }
 
 function trackIpRequests(req, res, next) {
@@ -105,7 +60,7 @@ function trackIpRequests(req, res, next) {
     
     // If IP is currently blocked
     if (ipData.blockedUntil && ipData.blockedUntil > currentTime) {
-      return res.status(429).json({ error: 'WOW that was way too many clicks for a normal human. You are in a 10min time out. :(' });
+      return res.status(429).json({ error: 'You have been temporarily blocked due to excessive requests. Try again later.' });
     }
 
     // Calculate the time passed since last request
@@ -124,7 +79,7 @@ function trackIpRequests(req, res, next) {
           ...ipData,
           blockedUntil: currentTime + BLOCK_TIME
         });
-        return res.status(429).json({ error: 'Too many requests. Try again later. You are in a 10min time out. :(' });
+        return res.status(429).json({ error: 'Too many requests. You are in a 10-minute timeout.' });
       } else {
         ipRequestCounts.set(ip, ipData);
       }
@@ -173,8 +128,8 @@ app.get('/api/token', (req, res) => {
   res.json({ token: currentToken });
 });
 
-// Apply both IP tracking, rate limiting, and token validation to the increment route
-app.post('/api/increment', validateToken, trackIpRequests, rateLimiter, async (req, res) => {
+// Apply both IP tracking and token validation to the increment route
+app.post('/api/increment', validateToken, trackIpRequests, async (req, res) => {
   const referer = req.get('Referer');
   const origin = req.get('Origin');
 
