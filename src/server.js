@@ -44,7 +44,7 @@ function validateToken(req, res, next) {
 
 // Simple in-memory store for tracking requests per IP
 const ipRequestCounts = new Map();
-const REQUEST_LIMIT = 3000; // Max requests per minute
+const REQUEST_LIMIT = 1000; // Max requests per minute
 const BLOCK_TIME = 10 * 60 * 1000; // Block for 10 minutes
 
 function getIp(req) {
