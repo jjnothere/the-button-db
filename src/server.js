@@ -36,6 +36,7 @@ setInterval(rotateToken, 5 * 60 * 1000); // Rotate the token every 5 minutes
 function validateToken(req, res, next) {
   const token = req.headers['x-access-token'];
   if (!token || token !== currentToken) {
+    console.log(`Token validation failed. Received token: ${token}`);
     return res.status(403).json({ error: 'Invalid or missing token' });
   }
   next();
@@ -57,18 +58,20 @@ function trackIpRequests(req, res, next) {
 
   if (ipRequestCounts.has(ip)) {
     const ipData = ipRequestCounts.get(ip);
-    
+
     // If IP is currently blocked
     if (ipData.blockedUntil && ipData.blockedUntil > currentTime) {
+      console.log(`IP ${ip} is currently blocked until ${new Date(ipData.blockedUntil)}`);
       return res.status(429).json({ error: 'You have been put in a 10-minute timeout.' });
     }
 
     // Calculate the time passed since last request
     const timePassed = currentTime - ipData.lastRequestTime;
 
-    // Reset count if more than a minute has passed
     if (timePassed > 60 * 1000) {
+      // Reset count if more than a minute has passed
       ipRequestCounts.set(ip, { count: 1, lastRequestTime: currentTime });
+      console.log(`IP ${ip} request count reset.`);
     } else {
       ipData.count += 1;
       ipData.lastRequestTime = currentTime;
@@ -79,14 +82,17 @@ function trackIpRequests(req, res, next) {
           ...ipData,
           blockedUntil: currentTime + BLOCK_TIME
         });
+        console.log(`IP ${ip} exceeded the request limit and is blocked until ${new Date(currentTime + BLOCK_TIME)}`);
         return res.status(429).json({ error: 'Too much ham. You are in a 10-minute timeout.' });
       } else {
         ipRequestCounts.set(ip, ipData);
+        console.log(`IP ${ip} request count updated: ${ipData.count}`);
       }
     }
   } else {
     // First request from this IP
     ipRequestCounts.set(ip, { count: 1, lastRequestTime: currentTime });
+    console.log(`First request from IP ${ip}.`);
   }
 
   next();
