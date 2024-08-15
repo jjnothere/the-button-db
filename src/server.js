@@ -11,6 +11,22 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Block specific IP address
+const blockedIps = ['74.36.211.228'];
+
+function blockIps(req, res, next) {
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+  if (blockedIps.includes(clientIp)) {
+    console.log(`Blocked request from IP: ${clientIp}`);
+    return res.status(403).json({ error: 'Your IP has been blocked.' });
+  }
+
+  next();
+}
+
+app.use(blockIps);
+
 const uri = process.env.MONGODB_URI;
 console.log('MongoDB URI:', uri);
 let db, collection;
@@ -51,12 +67,12 @@ function trackIpRequests(req, res, next) {
     }
 
     // If 200 requests have been made with the same interval, block the IP
-    if (ipData.sameIntervalCount >= 100) {
+    if (ipData.sameIntervalCount >= 200) {
       ipRequestCounts.set(ip, {
         ...ipData,
         blockedUntil: currentTime + BLOCK_TIME
       });
-      console.log(`IP ${ip} made 100 requests at the same interval and is blocked until ${new Date(currentTime + BLOCK_TIME)}`);
+      console.log(`IP ${ip} made 200 requests at the same interval and is blocked until ${new Date(currentTime + BLOCK_TIME)}`);
       return res.status(429).json({ error: 'Too many suspicious requests. You have been put in a 10-minute timeout.' });
     }
 
