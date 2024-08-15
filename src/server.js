@@ -104,12 +104,12 @@ wss.on('connection', ws => {
 });
 
 // Apply IP tracking to the increment route
-app.post('/api/increment', trackIpRequests, async (req, res) => {
+app.post('/increment', trackIpRequests, async (req, res) => {
   const referer = req.get('Referer');
   const origin = req.get('Origin');
 
   // Validate that the request is coming from your domain
-  if (referer !== 'https://www.theclickcounter.com/' && origin !== 'https://www.theclickcounter.com' && origin !== 'http://localhost:3000') {
+  if (referer !== 'https://www.theclickcounter.com/' && origin !== 'https://www.theclickcounter.com' && origin !== 'http://localhost:5173/' && origin !== 'http://localhost:5173') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
