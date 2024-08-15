@@ -145,7 +145,7 @@ app.post('/api/increment', trackIpRequests, async (req, res) => {
 
   // Validate that the request is coming from your domain
   if (referer !== 'https://www.theclickcounter.com/' && origin !== 'https://www.theclickcounter.com' && origin !== 'http://localhost:5173/' && origin !== 'http://localhost:5173') {
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error: 'Bruh....diss forbidden.' });
   }
 
   // Proceed with incrementing the counter if validation passes
