@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const crypto = require('crypto'); // For generating tokens
 const { MongoClient } = require('mongodb');
 const { Server } = require('ws');
 require('dotenv').config();
@@ -16,31 +15,6 @@ const uri = process.env.MONGODB_URI;
 console.log('MongoDB URI:', uri);
 let db, collection;
 let count = 0;
-
-// Token management
-let currentToken = generateToken();
-let tokenExpiration = Date.now() + 5 * 60 * 1000; // Token valid for 5 minutes
-
-function generateToken() {
-  return crypto.randomBytes(16).toString('hex');
-}
-
-function rotateToken() {
-  currentToken = generateToken();
-  tokenExpiration = Date.now() + 5 * 60 * 1000;
-}
-
-setInterval(rotateToken, 5 * 60 * 1000); // Rotate the token every 5 minutes
-
-// Middleware to check the token
-function validateToken(req, res, next) {
-  const token = req.headers['x-access-token'];
-  if (!token || token !== currentToken) {
-    console.log(`Token validation failed. Received token: ${token}`);
-    return res.status(403).json({ error: 'Invalid or missing token' });
-  }
-  next();
-}
 
 // Simple in-memory store for tracking requests per IP
 const ipRequestCounts = new Map();
@@ -62,7 +36,7 @@ function trackIpRequests(req, res, next) {
     // If IP is currently blocked
     if (ipData.blockedUntil && ipData.blockedUntil > currentTime) {
       console.log(`IP ${ip} is currently blocked until ${new Date(ipData.blockedUntil)}`);
-      return res.status(429).json({ error: 'You have been put in a 10-minute timeout.' });
+      return res.status(429).json({ error: 'This site is for humans and not robots.....you clicked over 1,000 times a minute. You have been put in a 10-minute timeout.' });
     }
 
     // Calculate the time passed since last request
@@ -129,13 +103,8 @@ wss.on('connection', ws => {
   });
 });
 
-// API to get the current token (for initial load)
-app.get('/api/token', (req, res) => {
-  res.json({ token: currentToken });
-});
-
-// Apply both IP tracking and token validation to the increment route
-app.post('/api/increment', validateToken, trackIpRequests, async (req, res) => {
+// Apply IP tracking to the increment route
+app.post('/api/increment', trackIpRequests, async (req, res) => {
   const referer = req.get('Referer');
   const origin = req.get('Origin');
 
