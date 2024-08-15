@@ -104,7 +104,7 @@ wss.on('connection', ws => {
 });
 
 // Apply IP tracking to the increment route
-app.post('/increment', trackIpRequests, async (req, res) => {
+app.post('/api/increment', trackIpRequests, async (req, res) => {
   const referer = req.get('Referer');
   const origin = req.get('Origin');
 
