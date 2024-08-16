@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Block specific IP address
-const blockedIps = ['74.36.211.228'];
+const blockedIps = ['74.36.211.228', '24.196.117.10'];
 
 function blockIps(req, res, next) {
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
