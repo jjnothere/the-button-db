@@ -19,7 +19,7 @@ function blockIps(req, res, next) {
 
   if (blockedIps.includes(clientIp)) {
     console.log(`Blocked request from IP: ${clientIp}`);
-    return res.status(403).json({ error: 'Your IP has been blocked.' });
+    return res.status(403).json({ error: 'Your IP has been blocked....You must be a robot' });
   }
 
   next();
